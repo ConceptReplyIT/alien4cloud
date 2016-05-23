@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -15,6 +16,7 @@ import javax.annotation.Resource;
 import javax.inject.Inject;
 
 import alien4cloud.exception.AlreadyExistException;
+import alien4cloud.model.components.CSARSource;
 import alien4cloud.plugin.PluginManager;
 import alien4cloud.plugin.exception.MissingPlugingDescriptorFileException;
 import alien4cloud.plugin.exception.PluginLoadingException;
@@ -91,10 +93,11 @@ public class InitialLoader {
         // archives must be in zip format and placed in the actual folder
         try {
             List<Path> archives = FileUtil.listFiles(rootDirectory, ".+\\.(zip|csar)");
+            Collections.sort(archives);
             for (Path archive : archives) {
                 try {
                     log.debug("Initial load of archives from <{}>.", archive.toString());
-                    csarUploadService.upload(archive);
+                    csarUploadService.upload(archive, CSARSource.ALIEN);
                 } catch (CSARVersionAlreadyExistsException e) {
                     log.debug("Skipping initial upload of archive <{}>. Archive has already been loaded.", archive.toString(), e);
                 } catch (ParsingException e) {

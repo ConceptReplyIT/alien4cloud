@@ -2,7 +2,6 @@ define(function(require) {
   'use strict';
 
   var modules = require('modules');
-  var states = require('states');
   var angular = require('angular');
   var _ = require('lodash');
 
@@ -12,19 +11,19 @@ define(function(require) {
   require('scripts/tosca/services/node_template_service');
 
   modules.get('a4c-orchestrators', ['ui.router', 'ui.bootstrap', 'a4c-common']).controller('OrchestratorLocationResourcesTemplateCtrl',
-    ['$scope', 'locationResourcesService', 'locationResourcesPropertyService', 'locationResourcesCapabilityPropertyService', 'locationResourcesProcessor', 'nodeTemplateService',
-      function($scope, locationResourcesService, locationResourcesPropertyService, locationResourcesCapabilityPropertyService, locationResourcesProcessor, nodeTemplateService) {
-        
+    ['$scope', 'locationResourcesService', 'locationResourcesPropertyService', 'locationResourcesCapabilityPropertyService', 'locationResourcesProcessor', 'nodeTemplateService', 'locationResourcesPortabilityService',
+      function($scope, locationResourcesService, locationResourcesPropertyService, locationResourcesCapabilityPropertyService, locationResourcesProcessor, nodeTemplateService, locationResourcesPortabilityService) {
+
         var init = function(){
           if (_.isNotEmpty($scope.resourcesTypes)) {
             $scope.selectedConfigurationResourceType = $scope.resourcesTypes[0];
           }
         };
-        
+
         $scope.$watch('resourcesTypes', function(){
           init();
         });
-        
+
         $scope.addResourceTemplate = function() {
           locationResourcesService.save({
             orchestratorId: $scope.context.orchestrator.id,
@@ -33,7 +32,7 @@ define(function(require) {
             'resourceType': $scope.selectedConfigurationResourceType.elementId,
             'resourceName': 'New Resource'
           }), function(response) {
-            locationResourcesProcessor.processLocationResourceTemplate(response.data)
+            locationResourcesProcessor.processLocationResourceTemplate(response.data);
             $scope.resourcesTemplates.push(response.data);
             $scope.selectTemplate(response.data);
           });
@@ -90,6 +89,17 @@ define(function(require) {
             locationId: $scope.context.location.id,
             id: $scope.selectedResourceTemplate.id,
             capabilityName: capabilityName
+          }, angular.toJson({
+            propertyName: propertyName,
+            propertyValue: propertyValue
+          })).$promise;
+        };
+
+        $scope.updatePortabilityProperty = function(propertyName, propertyValue) {
+          return locationResourcesPortabilityService.save({
+            orchestratorId: $scope.context.orchestrator.id,
+            locationId: $scope.context.location.id,
+            id: $scope.selectedResourceTemplate.id
           }, angular.toJson({
             propertyName: propertyName,
             propertyValue: propertyValue

@@ -1,17 +1,14 @@
 package alien4cloud.model.components.constraints;
 
+import alien4cloud.tosca.properties.constraints.exception.ConstraintViolationException;
 import javax.validation.constraints.NotNull;
-
-import alien4cloud.tosca.properties.constraints.exception.ConstraintValueDoNotMatchPropertyTypeException;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import alien4cloud.tosca.properties.constraints.exception.ConstraintViolationException;
 
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = false, of = { "length" })
-@SuppressWarnings({ "PMD.UnusedPrivateField" })
 public class LengthConstraint extends AbstractStringPropertyConstraint {
     @NotNull
     private Integer length;

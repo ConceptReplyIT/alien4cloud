@@ -24,7 +24,7 @@ define(function (require) {
           };
           var instance = this;
           $upload.upload({
-            url: 'rest/topologies/' + instance.scope.topology.topology.id + '/nodetemplates/' + uploadNodeTemplate.name + '/artifacts/' + artifactId,
+            url: 'rest/latest/topologies/' + instance.scope.topology.topology.id + '/nodetemplates/' + uploadNodeTemplate.name + '/artifacts/' + artifactId,
             file: file
           }).progress(function(evt) {
             instance.scope.uploads[artifactId].uploadProgress = parseInt(100.0 * evt.loaded / evt.total);
@@ -32,7 +32,7 @@ define(function (require) {
             if (!success.error) {
               instance.scope.uploads[artifactId].isUploading = false;
               instance.scope.uploads[artifactId].type = 'success';
-              instance.scope.refreshTopology(success.data, instance.scope.selectedNodeTemplate ? instance.scope.selectedNodeTemplate.name : undefined);
+              instance.scope.refreshTopology(success.data);
             }
           }).error(function(data, status) {
             instance.scope.uploads[artifactId].type = 'error';
@@ -56,7 +56,7 @@ define(function (require) {
             artifactId: artifactId
           }, function success(result) {
             if (result.error === null) {
-              instance.scope.refreshTopology(result.data, instance.scope.selectedNodeTemplate.name);
+              instance.scope.refreshTopology(result.data);
             }
           });
         }

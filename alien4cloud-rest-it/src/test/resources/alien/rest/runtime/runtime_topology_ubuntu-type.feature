@@ -2,7 +2,7 @@ Feature: get runtime topology ubuntu type
 
   Background:
     Given I am authenticated with "ADMIN" role
-    And I upload the archive "tosca-normative-types-wd06"
+    And I upload the archive "tosca-normative-types-1.0.0-SNAPSHOT"
     And I upload a plugin
     And I create an orchestrator named "Mount doom orchestrator" and plugin id "alien4cloud-mock-paas-provider:1.0" and bean name "mock-orchestrator-factory"
     And I enable the orchestrator "Mount doom orchestrator"
@@ -29,6 +29,7 @@ Feature: get runtime topology ubuntu type
     And I have added a node template "Ubuntu" related to the "alien.nodes.Ubuntu:0.1" node type
     And I add a relationship of type "tosca.relationships.HostedOn" defined in archive "tosca-base-types" version "1.0" with source "apacheLBGroovy" and target "Ubuntu" for requirement "host" of type "tosca.capabilities.Container" and target capability "Ubuntu"
 
+  @reset
   Scenario: Getting the runtime version of the deployed topology
     Given I have deleted a node template "apacheLBGroovy" from the topology
     When I ask the runtime topology of the application "ALIEN" on the location "Thark location" of "Mount doom orchestrator"

@@ -1,12 +1,12 @@
-<div ng-class="{'form-container-no-tree-window form-container-vertical-scroll': configuration.formStyle === 'window', 'row form-container-with-tree': configuration.formStyle === 'tree'}"
-     ng-show="isActivePath">
+<div ng-class="{
+    'form-container-no-tree-window form-container-vertical-scroll': configuration.formStyle === 'window'
+  }" ng-show="isActivePath">
   <div class="form-group">
     <label class="col-md-4 control-label"
            tooltip="{{labelName | translate}}"
            tooltip-trigger="{{{true: 'mouseenter', false: 'never'}[(labelName | translate).length > configuration.labelSize]}}">
       {{labelName | translate | truncate:configuration.labelSize}}
     </label>
-
     <div class="col-md-5">
       <input type="text" class="form-control" id="{{idPrefix + 'keyinput'}}"
              placeholder="{{ 'GENERIC_FORM.MAP_KEY_PLACEHOLDER' | translate }}" ng-model="key"

@@ -102,7 +102,7 @@ define(function (require) {
               newName: newName
             }, function(resultData) {
               if (resultData.error === null) {
-                scope.refreshTopology(resultData.data, scope.selectedNodeTemplate ? scope.selectedNodeTemplate.name : undefined);
+                scope.refreshTopology(resultData.data);
                 delete scope.relNameObj[oldName];
               }
             }, function() {
@@ -133,18 +133,18 @@ define(function (require) {
           }).$promise;
         },
 
-       remove: function(relationshipName, selectedNodeTemplate) {
-         var scope = this.scope;
-         topologyServices.relationshipDAO.remove({
-           topologyId: scope.topology.topology.id,
-           nodeTemplateName: selectedNodeTemplate.name,
-           relationshipName: relationshipName
-         }, function(result) {
-           if (result.error === null) {
-             scope.refreshTopology(result.data, selectedNodeTemplate.name);
-           }
-         });
-       }
+        remove: function(relationshipName, selectedNodeTemplate) {
+          var scope = this.scope;
+          topologyServices.relationshipDAO.remove({
+              topologyId: scope.topology.topology.id,
+              nodeTemplateName: selectedNodeTemplate.name,
+              relationshipName: relationshipName
+            }, function(result) {
+              if (result.error === null) {
+                scope.refreshTopology(result.data, selectedNodeTemplate.name);
+              }
+            });
+        }
       };
 
       return function(scope) {

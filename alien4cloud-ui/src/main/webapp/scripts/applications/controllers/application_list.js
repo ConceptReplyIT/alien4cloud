@@ -4,13 +4,10 @@ define(function (require) {
   var modules = require('modules');
   var states = require('states');
   var angular = require('angular');
+  var d3 = require('d3');
   var _ = require('lodash');
 
-  var d3Tip = require('d3-tip');
-  var d3 = require('d3');
-  window.d3 = d3;
-  var d3pie = require('d3-pie');
-
+  require('scripts/common/services/pie_chart_service.js');
   require('scripts/applications/services/application_services');
   require('scripts/applications/controllers/application_detail');
 
@@ -47,7 +44,7 @@ define(function (require) {
       };
 
       // TopologyTemplate handeling
-      var searchTopologyTemplateResource = $resource('rest/templates/topology/search', {}, {
+      var searchTopologyTemplateResource = $resource('rest/latest/templates/topology/search', {}, {
         'search': {
           method: 'POST',
           isArray: false,
@@ -57,7 +54,7 @@ define(function (require) {
         }
       });
 
-      var searchTopologyTemplateVersionResource = $resource('rest/templates/:topologyTemplateId/versions/search', {}, {
+      var searchTopologyTemplateVersionResource = $resource('rest/latest/templates/:topologyTemplateId/versions/search', {}, {
         'search': {
           method: 'POST',
           isArray: false,
@@ -112,8 +109,8 @@ define(function (require) {
   ];
 
   modules.get('a4c-applications').controller('ApplicationListCtrl',
-    ['$scope', '$modal', '$state', 'authService', 'applicationServices', '$translate', 'toaster', 'searchServiceFactory',
-    function($scope, $modal, $state, authService, applicationServices, $translate, toaster, searchServiceFactory) {
+    ['$scope', '$modal', '$state', 'authService', 'applicationServices', '$translate', 'toaster', 'searchServiceFactory', 'pieChartService',
+    function($scope, $modal, $state, authService, applicationServices, $translate, toaster, searchServiceFactory, pieChartService) {
       $scope.isManager = authService.hasRole('APPLICATIONS_MANAGER');
       $scope.applicationStatuses = [];
       $scope.onlyShowDeployedApplications = undefined;
@@ -161,52 +158,6 @@ define(function (require) {
         'UNDEPLOYMENT_IN_PROGRESS': '2'
       };
 
-      var drawPieChart = function(appName, data) {
-
-        if (data.length > 0) {
-          var tip = d3Tip().attr('class', 'd3-tip').html(function(node) {
-            return node.data.name;
-          });
-
-          var pie = new d3pie('pieChart-' + appName, {
-            'size': {
-              'canvasWidth': 60,
-              'canvasHeight': 60
-            },
-            'data': {
-              'sortOrder': 'label-asc',
-              'content': data
-            },
-            'labels': {
-              'outer': {
-                'format': 'none'
-              },
-              'inner': {
-                'format': 'none'
-              }
-            },
-            'effects': {
-              'load': {
-                'effect': 'none'
-              },
-              'pullOutSegmentOnClick': {
-                'effect': tip.hide
-              },
-              'highlightSegmentOnMouseover': true,
-              'highlightLuminosity': 0.10
-            },
-            'callbacks': {
-              'onMouseoverSegment': function(data) {
-                tip.show(data);
-              },
-              'onMouseoutSegment': tip.hide
-            }
-          });
-
-          pie.svg.call(tip);
-        }
-      };
-
       var updateApplicationStatuses = function(applicationSearchResult) {
         if (!angular.isUndefined(applicationSearchResult)) {
           var statuses = getApplicationStatuses(applicationSearchResult.data);
@@ -244,7 +195,7 @@ define(function (require) {
                 applicationSearchResult.data[key] = app;
               }
               $scope.applicationStatuses[app.name] = data;
-              drawPieChart(app.name, data);
+              pieChartService.render(app.name, data);
             });
           });
         }
@@ -256,7 +207,7 @@ define(function (require) {
         $scope.searchService.search();
       };
 
-      $scope.searchService = searchServiceFactory('rest/applications/search', false, $scope, 14);
+      $scope.searchService = searchServiceFactory('rest/latest/applications/search', false, $scope, 14);
       $scope.searchService.search();
 
       $scope.onSearchCompleted = function(searchResult) {
@@ -284,7 +235,7 @@ define(function (require) {
           if (!response.error && response.data === true) {
             $scope.searchService.search();
           } else {
-            toaster.pop('error', $translate('APPLICATIONS.ERRORS.DELETE_TITLE'), $translate('APPLICATIONS.ERRORS.DELETING_FAILED'), 4000, 'trustedHtml', null);
+            toaster.pop('error', $translate.instant('APPLICATIONS.ERRORS.DELETE_TITLE'), $translate.instant('APPLICATIONS.ERRORS.DELETING_FAILED'), 4000, 'trustedHtml', null);
           }
         });
       };

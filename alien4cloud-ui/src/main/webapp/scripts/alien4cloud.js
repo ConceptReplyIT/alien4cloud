@@ -3,6 +3,7 @@ define(function(require) {
 
   var states = require('states');
   var modules = require('modules');
+  var plugins = require('plugins');
   var _ = require('lodash');
   var angular = require('angular');
 
@@ -14,10 +15,10 @@ define(function(require) {
   require('angular-translate');
   require('angular-xeditable');
   require('scripts/layout/layout');
-  
+
   //some common directives directives
   require('scripts/common/directives/empty_place_holder');
-  
+
   // require alien4cloud modules
   require('scripts/authentication/controllers/navbar');
   require('scripts/admin/admin');
@@ -71,6 +72,7 @@ define(function(require) {
     alien4cloud.config(['$stateProvider', '$urlRouterProvider', '$httpProvider',
       function($stateProvider, $urlRouterProvider, $httpProvider) {
         $httpProvider.interceptors.push('restTechnicalErrorInterceptor');
+        $httpProvider.defaults.headers.common['A4C-Agent'] = 'AngularJS_UI';
         $urlRouterProvider.otherwise('/');
         states.config($stateProvider);
       }
@@ -83,11 +85,25 @@ define(function(require) {
         // Default language to load
         $translateProvider.preferredLanguage('en-us');
 
+        var options = {
+          files: [{
+            prefix: 'data/languages/locale-',
+            suffix: '.json'
+          }]
+        };
+
+        // load translations provided by plugins
+        if(!_.isEmpty(plugins.registeredTranlations)){
+          _.each(plugins.registeredTranlations, function(trans){
+            options.files.push({
+              prefix: trans.prefix,
+              suffix: trans.suffix
+            });
+          });
+        }
+
         // Static file loader
-        $translateProvider.useStaticFilesLoader({
-          prefix: 'data/languages/locale-',
-          suffix: '.json'
-        });
+        $translateProvider.useStaticFilesLoader(options);
       }
     ]);
 

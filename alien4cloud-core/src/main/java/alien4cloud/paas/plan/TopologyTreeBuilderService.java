@@ -1,14 +1,12 @@
 package alien4cloud.paas.plan;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.annotation.Resource;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
@@ -19,37 +17,19 @@ import alien4cloud.component.CSARRepositorySearchService;
 import alien4cloud.component.repository.CsarFileRepository;
 import alien4cloud.component.repository.exception.CSARVersionNotFoundException;
 import alien4cloud.exception.NotFoundException;
-import alien4cloud.model.components.CSARDependency;
-import alien4cloud.model.components.ConcatPropertyValue;
-import alien4cloud.model.components.FunctionPropertyValue;
-import alien4cloud.model.components.IValue;
-import alien4cloud.model.components.IndexedArtifactToscaElement;
-import alien4cloud.model.components.IndexedInheritableToscaElement;
-import alien4cloud.model.components.IndexedNodeType;
-import alien4cloud.model.components.IndexedRelationshipType;
-import alien4cloud.model.components.Interface;
-import alien4cloud.model.components.Operation;
-import alien4cloud.model.components.OperationOutput;
-import alien4cloud.model.topology.AbstractTemplate;
-import alien4cloud.model.topology.Capability;
-import alien4cloud.model.topology.NodeGroup;
-import alien4cloud.model.topology.NodeTemplate;
-import alien4cloud.model.topology.RelationshipTemplate;
-import alien4cloud.model.topology.ScalingPolicy;
-import alien4cloud.model.topology.Topology;
+import alien4cloud.model.components.*;
+import alien4cloud.model.topology.*;
 import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.exception.InvalidTopologyException;
 import alien4cloud.paas.function.FunctionEvaluator;
+import alien4cloud.paas.model.AbstractPaaSTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopology;
+import alien4cloud.rest.utils.JsonUtil;
 import alien4cloud.topology.TopologyUtils;
 import alien4cloud.tosca.ToscaUtils;
-import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
-import alien4cloud.tosca.normative.NormativeComputeConstants;
-import alien4cloud.tosca.normative.NormativeNetworkConstants;
-import alien4cloud.tosca.normative.NormativeRelationshipConstants;
-import alien4cloud.tosca.normative.ToscaFunctionConstants;
+import alien4cloud.tosca.normative.*;
 import alien4cloud.utils.AlienUtils;
 import alien4cloud.utils.TypeMap;
 
@@ -94,6 +74,7 @@ public class TopologyTreeBuilderService {
                 PaaSNodeTemplate paaSNodeTemplate = new PaaSNodeTemplate(templateEntry.getKey(), template);
 
                 fillType(cache, topology, template, paaSNodeTemplate, IndexedNodeType.class);
+                mergeInterfaces(paaSNodeTemplate, template);
 
                 if (template.getRelationships() != null) {
                     for (Map.Entry<String, RelationshipTemplate> relationshipEntry : template.getRelationships().entrySet()) {
@@ -101,6 +82,7 @@ public class TopologyTreeBuilderService {
                         PaaSRelationshipTemplate paaSRelationshipTemplate = new PaaSRelationshipTemplate(relationshipEntry.getKey(), relationshipTemplate,
                                 paaSNodeTemplate.getId());
                         fillType(cache, topology, relationshipTemplate, paaSRelationshipTemplate, IndexedRelationshipType.class);
+                        mergeInterfaces(paaSRelationshipTemplate, relationshipTemplate);
                         paaSNodeTemplate.getRelationshipTemplates().add(paaSRelationshipTemplate);
                     }
                 }
@@ -125,6 +107,45 @@ public class TopologyTreeBuilderService {
             }
         }
         return nodeTemplates;
+    }
+
+    /**
+     * Get the non-natives node of a topology.
+     * @param topology
+     * @return a Map of non-natives nodes.
+     */
+    public Map<String, NodeTemplate> getNonNativesNodes(Topology topology) {
+        TypeMap cache = new TypeMap();
+        Map<String, NodeTemplate> nonNativesNode = new HashMap<>();
+
+        if (topology.getNodeTemplates() != null) {
+            for (Entry<String, NodeTemplate> templateEntry : topology.getNodeTemplates().entrySet()) {
+                NodeTemplate template = templateEntry.getValue();
+                IndexedNodeType indexedToscaElement = getToscaType(template.getType(), cache, topology.getDependencies(), IndexedNodeType.class);
+
+                boolean isCompute = ToscaUtils.isFromType(NormativeComputeConstants.COMPUTE_TYPE, indexedToscaElement);
+                boolean isNetwork = ToscaUtils.isFromType(NormativeNetworkConstants.NETWORK_TYPE, indexedToscaElement);
+                boolean isVolume = ToscaUtils.isFromType(NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, indexedToscaElement);
+                if (!isCompute && !isNetwork && !isVolume) {
+                    nonNativesNode.put(templateEntry.getKey(), template);
+                }
+            }
+        }
+
+        return nonNativesNode;
+    }
+
+    @SneakyThrows
+    private void mergeInterfaces(AbstractPaaSTemplate pasSTemplate, AbstractTemplate abstractTemplate) {
+        IndexedToscaElement type = pasSTemplate.getIndexedToscaElement();
+        Map<String, Interface> typeInterfaces = null;
+        if (type instanceof IndexedArtifactToscaElement) {
+            typeInterfaces = ((IndexedArtifactToscaElement) type).getInterfaces();
+        }
+        Map<String, Interface> templateInterfaces = abstractTemplate.getInterfaces();
+        // Here merge interfaces: the interface defined in the template should override those from type.
+        pasSTemplate.setInterfaces(
+                IndexedModelUtils.mergeInterfaces(JsonUtil.toMap(JsonUtil.toString(typeInterfaces), String.class, Interface.class), templateInterfaces));
     }
 
     /**
@@ -291,7 +312,7 @@ public class TopologyTreeBuilderService {
     private <V extends IndexedInheritableToscaElement> void fillType(TypeMap typeMap, Topology topology, AbstractTemplate template,
             IPaaSTemplate<V> paaSTemplate, Class<V> clazz) {
         V indexedToscaElement = getToscaType(template.getType(), typeMap, topology.getDependencies(), clazz);
-        paaSTemplate.setIndexedToscaElement((V) indexedToscaElement);
+        paaSTemplate.setIndexedToscaElement(indexedToscaElement);
         List<String> derivedFroms = indexedToscaElement.getDerivedFrom();
         List<V> derivedFromTypes = Lists.newArrayList();
         if (derivedFroms != null) {
@@ -400,8 +421,8 @@ public class TopologyTreeBuilderService {
     private <V extends IndexedArtifactToscaElement> void registerOperationOutput(final List<? extends IPaaSTemplate> paaSTemplates, final String interfaceName,
             final String operationName, final String output, final String formatedAttributeName) {
         for (IPaaSTemplate<V> paaSTemplate : paaSTemplates) {
-            if (paaSTemplate.getTemplate().getInterfaces() != null) {
-                Interface interfass = MapUtils.getObject(paaSTemplate.getTemplate().getInterfaces(), (interfaceName));
+            if (paaSTemplate.getInterfaces() != null) {
+                Interface interfass = MapUtils.getObject(paaSTemplate.getInterfaces(), (interfaceName));
                 if (interfass != null && interfass.getOperations().containsKey(operationName)) {
                     OperationOutput toAdd = new OperationOutput(output);
                     if (StringUtils.isNotBlank(formatedAttributeName)) {

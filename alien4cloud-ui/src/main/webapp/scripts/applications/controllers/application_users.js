@@ -12,14 +12,14 @@ define(function (require) {
     resolve: {
       applicationRoles: ['$resource',
         function($resource) {
-          return $resource('rest/auth/roles/application', {}, {
+          return $resource('rest/latest/auth/roles/application', {}, {
             method: 'GET'
           }).get().$promise;
         }
       ],
       environmentRoles: ['$resource',
         function($resource) {
-          return $resource('rest/auth/roles/environment', {}, {
+          return $resource('rest/latest/auth/roles/environment', {}, {
             method: 'GET'
           }).get().$promise;
         }
@@ -45,7 +45,7 @@ define(function (require) {
       $scope.environmentRoles = environmentRolesResult.data;
 
       // set default selected environment
-      $scope.selectedEnvironment = appEnvironments.environments[0];
+      $scope.selectedEnvironment = appEnvironments.selected;
 
       $scope.isManager = authService.hasResourceRole($scope.application, 'APPLICATION_MANAGER');
       $scope.isDeployer = authService.hasResourceRole($scope.application, 'DEPLOYMENT_MANAGER');
@@ -54,11 +54,9 @@ define(function (require) {
 
       // switch environment
       $scope.changeUserEnvironment = function(switchToEnvironment) {
-        var currentEnvironment = $scope.selectedEnvironment;
-        var newEnvironment = switchToEnvironment;
-        if (currentEnvironment.id !== newEnvironment.id) {
-          $scope.selectedEnvironment = switchToEnvironment;
-        }
+        appEnvironments.select(switchToEnvironment.id, function(){
+          $scope.selectedEnvironment = appEnvironments.selected;
+        });
       };
 
       // get users related to the application
@@ -98,9 +96,9 @@ define(function (require) {
         }
         // get group ids from environment group roles
         if ($scope.selectedEnvironment.groupRoles) {
-          for (groupId in $scope.selectedEnvironment.groupRoles) {
-            if ($scope.selectedEnvironment.groupRoles.hasOwnProperty(groupId)) {
-              groupIds.push(groupId);
+          for (var envGroupId in $scope.selectedEnvironment.groupRoles) {
+            if ($scope.selectedEnvironment.groupRoles.hasOwnProperty(envGroupId)) {
+              groupIds.push(envGroupId);
             }
           }
         }

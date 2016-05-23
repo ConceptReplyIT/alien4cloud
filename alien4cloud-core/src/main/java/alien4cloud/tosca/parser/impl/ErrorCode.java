@@ -44,6 +44,8 @@ public enum ErrorCode {
     MISSING_DEPENDENCY,
     /** Scalar unit declaration not well managed. */
     INVALID_SCALAR_UNIT,
+    /** Detect a potential bad property value based on precedent inserted values **/
+    POTENTIAL_BAD_PROPERTY_VALUE,
     /** Implementation artifact is unknown. */
     UNKNOWN_IMPLEMENTATION_ARTIFACT,
     /** A topology has been detected. */
@@ -66,5 +68,7 @@ public enum ErrorCode {
     UNKOWN_GROUP_MEMBER,
     EMPTY_TOPOLOGY,
     UNKNWON_WORKFLOW_STEP,
-    WORKFLOW_HAS_ERRORS;
+    WORKFLOW_HAS_ERRORS,
+    /** Invalid node template name (contains dot, dash or accent) **/
+    INVALID_NODE_TEMPLATE_NAME;
 }

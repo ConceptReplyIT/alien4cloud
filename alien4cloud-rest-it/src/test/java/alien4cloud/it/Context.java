@@ -4,13 +4,7 @@ import java.beans.IntrospectionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -31,11 +25,7 @@ import org.springframework.util.PropertyPlaceholderHelper;
 import alien4cloud.it.exception.ITException;
 import alien4cloud.it.provider.util.AwsClient;
 import alien4cloud.it.provider.util.OpenStackClient;
-import alien4cloud.json.deserializer.AttributeDeserializer;
-import alien4cloud.json.deserializer.PropertyConstraintDeserializer;
-import alien4cloud.json.deserializer.PropertyValueDeserializer;
-import alien4cloud.json.deserializer.TaskDeserializer;
-import alien4cloud.json.deserializer.TaskIndexedInheritableToscaElementDeserializer;
+import alien4cloud.json.deserializer.*;
 import alien4cloud.model.application.Application;
 import alien4cloud.model.common.MetaPropConfiguration;
 import alien4cloud.model.components.AbstractPropertyValue;
@@ -53,7 +43,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
 import cucumber.runtime.io.ClasspathResourceLoader;
 
 /**
@@ -64,14 +53,13 @@ import cucumber.runtime.io.ClasspathResourceLoader;
  */
 @Slf4j
 public class Context {
+    public static final String FASTCONNECT_NEXUS = "http://fastconnect.org/maven/service/local/artifact/maven/redirect?";
 
     public static final String GIT_URL_SUFFIX = ".git";
 
-    public static final Path GIT_ARTIFACT_TARGET_PATH = Paths.get("target/gits");
+    public static final Path GIT_ARTIFACT_TARGET_PATH = Paths.get("target/git");
 
     public static final Path CSAR_TARGET_PATH = Paths.get("target/csars");
-
-    public static final String FASTCONNECT_NEXUS = "http://fastconnect.org/maven/service/local/artifact/maven/redirect?";
 
     public static final Path LOCAL_TEST_DATA_PATH = Paths.get("src/test/resources");
 
@@ -83,7 +71,7 @@ public class Context {
 
     public static final String CONTEXT_PATH = "";
 
-    public static final String WEB_SOCKET_END_POINT = "/rest/alienEndPoint";
+    public static final String WEB_SOCKET_END_POINT = "/rest/v1/alienEndPoint";
 
     /** Alien's current version. */
     public static final String VERSION;
@@ -218,6 +206,8 @@ public class Context {
 
     private String csarGitRepositoryId;
 
+    private String currentExternalId;
+
     private Map<String, String> stringContent = new HashMap<String, String>();
 
     private Context() {
@@ -256,7 +246,7 @@ public class Context {
                 convertProperties(properties);
                 resolver = new PropertyPlaceholderConfigurerResolver(properties);
             }
-            String value = this.helper.replacePlaceholders(resolvePlaceholder(key, properties, SYSTEM_PROPERTIES_MODE_FALLBACK), this.resolver);
+            String value = this.helper.replacePlaceholders(resolvePlaceholder(key, properties, SYSTEM_PROPERTIES_MODE_OVERRIDE), this.resolver);
             return (value.equals(nullValue) ? null : value);
         }
 
@@ -270,7 +260,7 @@ public class Context {
 
             @Override
             public String resolvePlaceholder(String placeholderName) {
-                return TestPropertyPlaceholderConfigurer.this.resolvePlaceholder(placeholderName, props, SYSTEM_PROPERTIES_MODE_FALLBACK);
+                return TestPropertyPlaceholderConfigurer.this.resolvePlaceholder(placeholderName, props, SYSTEM_PROPERTIES_MODE_OVERRIDE);
             }
         }
     }
@@ -342,7 +332,11 @@ public class Context {
     }
 
     public Path getPluginDirPath() {
-        return Paths.get(getAlienPath() + "/" + getAppProperty("directories.plugins"));
+        return Paths.get(getAlienPath() + "/plugins");
+    }
+
+    public Path getWorkPath() {
+        return Paths.get(getAlienPath() + "/work");
     }
 
     public Path getArtifactDirPath() {
@@ -698,4 +692,11 @@ public class Context {
         return this.stringContent.get(key);
     }
 
+    public String getCurrentExternalId() {
+        return currentExternalId;
+    }
+
+    public void setCurrentExternalId(String currentExternalId) {
+        this.currentExternalId = currentExternalId;
+    }
 }

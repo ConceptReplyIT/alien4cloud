@@ -1,19 +1,18 @@
 package alien4cloud.topology;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 
 import javax.annotation.Resource;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Sets;
 import org.springframework.stereotype.Service;
+
+import com.google.common.collect.Maps;
 
 import alien4cloud.component.ICSARRepositoryIndexerService;
 import alien4cloud.component.ICSARRepositorySearchService;
@@ -22,34 +21,17 @@ import alien4cloud.csar.services.CsarService;
 import alien4cloud.dao.IGenericSearchDAO;
 import alien4cloud.dao.model.GetMultipleDataResult;
 import alien4cloud.exception.NotFoundException;
-import alien4cloud.model.components.AbstractPropertyValue;
-import alien4cloud.model.components.CSARDependency;
-import alien4cloud.model.components.CapabilityDefinition;
-import alien4cloud.model.components.Csar;
-import alien4cloud.model.components.DeploymentArtifact;
-import alien4cloud.model.components.IValue;
-import alien4cloud.model.components.IndexedCapabilityType;
-import alien4cloud.model.components.IndexedModelUtils;
-import alien4cloud.model.components.IndexedNodeType;
-import alien4cloud.model.components.IndexedRelationshipType;
-import alien4cloud.model.components.IndexedToscaElement;
-import alien4cloud.model.components.PropertyDefinition;
-import alien4cloud.model.components.RequirementDefinition;
-import alien4cloud.model.components.ScalarPropertyValue;
+import alien4cloud.model.components.*;
 import alien4cloud.model.templates.TopologyTemplate;
 import alien4cloud.model.templates.TopologyTemplateVersion;
-import alien4cloud.model.topology.Capability;
-import alien4cloud.model.topology.NodeTemplate;
-import alien4cloud.model.topology.RelationshipTemplate;
-import alien4cloud.model.topology.Requirement;
-import alien4cloud.model.topology.SubstitutionTarget;
-import alien4cloud.model.topology.Topology;
+import alien4cloud.model.topology.*;
+import alien4cloud.rest.utils.JsonUtil;
+import alien4cloud.tosca.normative.AlienCustomTypes;
 import alien4cloud.utils.MapUtil;
 import alien4cloud.utils.PropertyUtil;
 
-import com.google.common.collect.Maps;
-
 @Service
+@Slf4j
 public class TopologyServiceCore {
 
     @Resource(name = "alien-es-dao")
@@ -77,6 +59,36 @@ public class TopologyServiceCore {
         }
     };
 
+    /**
+     * Get the Map of {@link NodeTemplate} from a topology
+     *
+     * @param topology the topology
+     * @return this topology's node templates
+     */
+    public static Map<String, NodeTemplate> getNodeTemplates(Topology topology) {
+        Map<String, NodeTemplate> nodeTemplates = topology.getNodeTemplates();
+        if (nodeTemplates == null) {
+            throw new NotFoundException("Topology [" + topology.getId() + "] do not have any node template");
+        }
+        return nodeTemplates;
+    }
+
+    /**
+     * Get a {@link NodeTemplate} given its name from a map
+     *
+     * @param topologyId the topology's id
+     * @param nodeTemplateName the name of the node template
+     * @param nodeTemplates the topology's node templates
+     * @return the found node template, throws NotFoundException if not found
+     */
+    public static NodeTemplate getNodeTemplate(String topologyId, String nodeTemplateName, Map<String, NodeTemplate> nodeTemplates) {
+        NodeTemplate nodeTemplate = nodeTemplates.get(nodeTemplateName);
+        if (nodeTemplate == null) {
+            throw new NotFoundException("Topology [" + topologyId + "] do not have node template with name [" + nodeTemplateName + "]");
+        }
+        return nodeTemplate;
+    }
+
     public Topology getTopology(String topologyId) {
         return alienDAO.findById(Topology.class, topologyId);
     }
@@ -93,36 +105,6 @@ public class TopologyServiceCore {
             throw new NotFoundException("Topology [" + topologyId + "] cannot be found");
         }
         return topology;
-    }
-
-    /**
-     * Get the Map of {@link NodeTemplate} from a topology
-     *
-     * @param topology the topology
-     * @return this topology's node templates
-     */
-    public Map<String, NodeTemplate> getNodeTemplates(Topology topology) {
-        Map<String, NodeTemplate> nodeTemplates = topology.getNodeTemplates();
-        if (nodeTemplates == null) {
-            throw new NotFoundException("Topology [" + topology.getId() + "] do not have any node template");
-        }
-        return nodeTemplates;
-    }
-
-    /**
-     * Get a {@link NodeTemplate} given its name from a map
-     *
-     * @param topologyId the topology's id
-     * @param nodeTemplateName the name of the node template
-     * @param nodeTemplates the topology's node templates
-     * @return the found node template, throws NotFoundException if not found
-     */
-    public NodeTemplate getNodeTemplate(String topologyId, String nodeTemplateName, Map<String, NodeTemplate> nodeTemplates) {
-        NodeTemplate nodeTemplate = nodeTemplates.get(nodeTemplateName);
-        if (nodeTemplate == null) {
-            throw new NotFoundException("Topology [" + topologyId + "] do not have node template with name [" + nodeTemplateName + "]");
-        }
-        return nodeTemplate;
     }
 
     /**
@@ -266,10 +248,14 @@ public class TopologyServiceCore {
         nodeTemplate.setRequirements(requirements);
         nodeTemplate.setProperties(properties);
         nodeTemplate.setAttributes(indexedNodeType.getAttributes());
-        nodeTemplate.setInterfaces(indexedNodeType.getInterfaces());
         nodeTemplate.setArtifacts(deploymentArtifacts);
-        if (templateToMerge != null && templateToMerge.getRelationships() != null) {
-            nodeTemplate.setRelationships(templateToMerge.getRelationships());
+        if (templateToMerge != null) {
+            if (templateToMerge.getInterfaces() != null) {
+                nodeTemplate.setInterfaces(templateToMerge.getInterfaces());
+            }
+            if (templateToMerge.getRelationships() != null) {
+                nodeTemplate.setRelationships(templateToMerge.getRelationships());
+            }
         }
         return nodeTemplate;
     }
@@ -284,7 +270,21 @@ public class TopologyServiceCore {
             if (existingValue == null) {
                 String defaultValue = entry.getValue().getDefault();
                 if (defaultValue != null && !defaultValue.trim().isEmpty()) {
-                    properties.put(entry.getKey(), new ScalarPropertyValue(defaultValue));
+                    defaultValue = defaultValue.trim();
+                    PropertyValue<?> pv = null;
+                    try {
+                        if (AlienCustomTypes.checkDefaultIsComplex(defaultValue)) {
+                            pv = new ComplexPropertyValue(JsonUtil.toMap(defaultValue));
+                        } else if (AlienCustomTypes.checkDefaultIsList(defaultValue)) {
+                            pv = new ListPropertyValue(JsonUtil.toList(defaultValue, Object.class));
+
+                        } else {
+                            pv = new ScalarPropertyValue(defaultValue);
+                        }
+                    } catch (IOException e) {
+                        log.info(e.getMessage());
+                    }
+                    properties.put(entry.getKey(), pv);
                 } else {
                     properties.put(entry.getKey(), null);
                 }
@@ -323,8 +323,8 @@ public class TopologyServiceCore {
             if (toAddRequirement == null) {
                 toAddRequirement = new Requirement();
                 toAddRequirement.setType(requirement.getType());
-                IndexedCapabilityType indexedReq = toscaElementFinder
-                        .getElementInDependencies(IndexedCapabilityType.class, requirement.getType(), dependencies);
+                IndexedCapabilityType indexedReq = toscaElementFinder.getElementInDependencies(IndexedCapabilityType.class, requirement.getType(),
+                        dependencies);
                 if (indexedReq != null && indexedReq.getProperties() != null) {
                     toAddRequirement.setProperties(PropertyUtil.getDefaultPropertyValuesFromPropertyDefinitions(indexedReq.getProperties()));
                 }
@@ -398,7 +398,7 @@ public class TopologyServiceCore {
 
     /**
      * Assign an id to the topology, save it and return the generated id.
-     * 
+     *
      * @param topology
      * @return
      */
@@ -421,8 +421,8 @@ public class TopologyServiceCore {
         if (topology.getSubstitutionMapping() == null || topology.getSubstitutionMapping().getSubstitutionType() == null) {
             return;
         }
-        IndexedNodeType nodeType = csarRepoSearchService.getElementInDependencies(IndexedNodeType.class, topology.getSubstitutionMapping()
-                .getSubstitutionType().getElementId(), topology.getDependencies());
+        IndexedNodeType nodeType = csarRepoSearchService.getElementInDependencies(IndexedNodeType.class,
+                topology.getSubstitutionMapping().getSubstitutionType().getElementId(), topology.getDependencies());
 
         TopologyTemplate topologyTemplate = alienDAO.findById(TopologyTemplate.class, topology.getDelegateId());
         TopologyTemplateVersion topologyTemplateVersion = topologyTemplateVersionService.getByTopologyId(topology.getId());
@@ -443,6 +443,7 @@ public class TopologyServiceCore {
         }
         csar.setDependencies(inheritanceDependencies);
         csar.getDependencies().addAll(topology.getDependencies());
+        csar.setImportSource(CSARSource.TOPOLOGY_SUBSTITUTION.name());
         csarService.save(csar);
 
         IndexedNodeType topologyTemplateType = new IndexedNodeType();

@@ -4,7 +4,7 @@ Feature: Node substitution in the deployment topology.
     Given I am authenticated with "ADMIN" role
     And There are these users in the system
       | frodon |
-    And I upload the archive "tosca-normative-types-wd06"
+    And I upload the archive "tosca-normative-types-1.0.0-SNAPSHOT"
     And I upload a plugin
     And I create an orchestrator named "Mount doom orchestrator" and plugin id "alien4cloud-mock-paas-provider:1.0" and bean name "mock-orchestrator-factory"
     And I enable the orchestrator "Mount doom orchestrator"
@@ -22,10 +22,10 @@ Feature: Node substitution in the deployment topology.
     And I update the property "flavorId" to "1" for the resource named "Manual_Small_Ubuntu" related to the location "Mount doom orchestrator"/"Thark location"
 
   	And I add a role "DEPLOYER" to user "frodon" on the resource type "LOCATION" named "Thark location"
-    And I have an application "ALIEN" with a topology containing a nodeTemplate "Compute" related to "tosca.nodes.Compute:1.0.0.wd06-SNAPSHOT"
+    And I have an application "ALIEN" with a topology containing a nodeTemplate "Compute" related to "tosca.nodes.Compute:1.0.0-SNAPSHOT"
     And I Set a unique location policy to "Mount doom orchestrator"/"Thark location" for all nodes
 
-
+  @reset
   Scenario: Set a subsitution for a node
     When I substitute on the current application the node "Compute" with the location resource "Mount doom orchestrator"/"Thark location"/"Small_Ubuntu"
     Then I should receive a RestResponse with no error
@@ -36,6 +36,7 @@ Feature: Node substitution in the deployment topology.
     And The deployment topology sould have the substituted nodes
     	| Compute | Manual_Small_Ubuntu | alien.nodes.mock.Compute |
 
+  @reset
   Scenario: Update a substituted node's property
   	Given I substitute on the current application the node "Compute" with the location resource "Mount doom orchestrator"/"Thark location"/"Manual_Small_Ubuntu"
   	When I update the property "imageId" to "updatedImg" for the subtituted node "Compute"
@@ -43,6 +44,7 @@ Feature: Node substitution in the deployment topology.
     When I ask for the deployment topology of the application "ALIEN"
     Then The node "Compute" in the deployment topology should have the property "imageId" with value "updatedImg"
 
+  @reset
   Scenario: Update a substituted node's property should fail if configured by admin
     Given I substitute on the current application the node "Compute" with the location resource "Mount doom orchestrator"/"Thark location"/"Manual_Small_Ubuntu"
     When I update the property "flavorId" to "2" for the subtituted node "Compute"
@@ -50,6 +52,7 @@ Feature: Node substitution in the deployment topology.
     When I ask for the deployment topology of the application "ALIEN"
     Then The node "Compute" in the deployment topology should have the property "flavorId" with value "1"
 
+  @reset
   Scenario: Update a substituted node's capability property
   	Given I substitute on the current application the node "Compute" with the location resource "Mount doom orchestrator"/"Thark location"/"Manual_Small_Ubuntu"
   	When I update the capability "os" property "type" to "linux" for the subtituted node "Compute"

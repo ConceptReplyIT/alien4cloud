@@ -315,7 +315,7 @@ var removeScalingPolicy = function(computeId) {
 module.exports.removeScalingPolicy = removeScalingPolicy;
 
 var selectNodeAndGoToDetailBloc = function(nodeTemplateName, blocId) {
-  common.click(by.id('title_' + nodeTemplateName));
+  common.click(by.id('rect_' + nodeTemplateName));
   if (blocId) {
     return collapseNodeDetailsBloc(blocId);
   }
@@ -340,6 +340,13 @@ var editNodeProperty = function(nodeTemplateName, propertyName, propertyValue, c
   inputValue.clear();
   inputValue.sendKeys(propertyValue);
   editForm.submit();
+
+  // close modal of suggestion if present
+  element(by.className('modal-dialog')).isPresent().then(function (isVisible) {
+    if (isVisible) {
+      common.click(by.id('btn-create'));
+    }
+  });
 };
 module.exports.editNodeProperty = editNodeProperty;
 

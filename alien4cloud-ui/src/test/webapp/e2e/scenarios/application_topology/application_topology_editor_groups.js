@@ -1,4 +1,4 @@
-/* global by */
+/* global by, it, describe, expect, element */
 
 'use strict';
 
@@ -26,9 +26,7 @@ describe('Topology node groups', function() {
   });
 
   it('should be able to create a node group from a node template', function() {
-    console.log('################# should be able to create a node group from a node template');
     applications.goToApplicationTopologyPage();
-    console.log('## add a group from the node Compute and ensure the group appear in the list');
     // add a new group
     topologyEditorCommon.addNodeTemplateToNodeGroup('Compute');
     // ensure the groups details is expanded
@@ -45,7 +43,6 @@ describe('Topology node groups', function() {
       element(by.id('closeNodeTemplateDetails')).click();
     });
 
-    console.log('## ensure the group appear in the group box with the correct members');
     // show the groups box
     element(by.id('topology-groups')).element(by.xpath('..')).click();
     // we should have 1 group at all
@@ -66,21 +63,19 @@ describe('Topology node groups', function() {
       element(by.id('closeGroups')).click();
     });
 
-    console.log('## add a new node and create a new group from it');
     // add another node
     topologyEditorCommon.addNodeTemplatesCenterAndZoom({
       compute: componentData.toscaBaseTypes.compute()
     });
     // and another group
-    topologyEditorCommon.addNodeTemplateToNodeGroup('Compute-2');
+    topologyEditorCommon.addNodeTemplateToNodeGroup('Compute_2');
     // close the node details box
     element(by.id('closeNodeTemplateDetails')).click();
 
-    console.log('## rename this new group');
     // show the groups box
     element(by.id('topology-groups')).element(by.xpath('..')).click();
     // rename the group
-    var xeditable = element(by.id('nodeGroupName_Compute-2'));
+    var xeditable = element(by.id('nodeGroupName_Compute_2'));
     xeditable.click();
     var form = xeditable.element(by.xpath('..')).element(by.tagName('form'));
     var input = form.element(by.tagName('input'));
@@ -90,7 +85,6 @@ describe('Topology node groups', function() {
     // close the groups panel
     element(by.id('closeGroups')).click();
 
-    console.log('## associate the new group to the node Compute');
     // associate the new group to the node 'Compute'
     topologyEditorCommon.addNodeTemplateToNodeGroup('Compute', 'MyGroup');
     // ensure the groups details is expanded
@@ -112,14 +106,12 @@ describe('Topology node groups', function() {
       element(by.id('closeNodeTemplateDetails')).click();
     });
 
-    console.log('## ensure the 2 groups appear in the group box');
     // show the groups box
     expect(element(by.id('topology-groups')).isDisplayed()).toBeTruthy();
     element(by.id('topology-groups')).element(by.xpath('..')).click();
     // we should have 2 group at all
     expect(element(by.id('groups-box')).all(by.repeater('group in orderedNodeGroups')).count()).toEqual(2);
 
-    console.log('## remove a member from a group');
     // ensure the members for the group 'Compute' are displayed
     element(by.id('group-members-MyGroup-content')).isDisplayed().then(function(isVisible) {
       if (!isVisible) {
@@ -131,8 +123,8 @@ describe('Topology node groups', function() {
       expect(element(by.id('group-members-MyGroup-content')).all(by.repeater('member in group.members')).count()).toEqual(2);
       element(by.id('group-members-MyGroup-content')).all(by.repeater('member in group.members')).then(function(members) {
         // It's a test one of as order is not respected
-        expectMemberName(members[0], 'Compute-2', 'Compute');
-        expectMemberName(members[1], 'Compute-2', 'Compute');
+        expectMemberName(members[0], 'Compute_2', 'Compute');
+        expectMemberName(members[1], 'Compute_2', 'Compute');
         // delete the member 'Compute'
         expect(members[1].element(by.tagName('a')).isDisplayed()).toBeTruthy();
         members[1].element(by.tagName('a')).click();
@@ -143,7 +135,6 @@ describe('Topology node groups', function() {
       element(by.id('closeGroups')).click();
     });
 
-    console.log('## check that the removed member has no more the group referenced');
     // click on the node 'Compute'
     expect(element(by.id('rect_Compute')).isDisplayed()).toBeTruthy();
     element(by.id('rect_Compute')).click();
@@ -162,7 +153,6 @@ describe('Topology node groups', function() {
       element(by.id('closeNodeTemplateDetails')).click();
     });
 
-    console.log('## delete a group');
     // show the groups box
     element(by.id('topology-groups')).element(by.xpath('..')).click();
     // remove the group
@@ -172,9 +162,8 @@ describe('Topology node groups', function() {
     // close the groups panel
     element(by.id('closeGroups')).click();
 
-    console.log('## ensure the node no more reference the deleted group');
-    // click on the node 'Compute-2'
-    element(by.id('rect_Compute-2')).click();
+    // click on the node 'Compute_2'
+    element(by.id('rect_Compute_2')).click();
     // expect to have 0 groups now
     expect(element.all(by.repeater('groupId in selectedNodeTemplate.groups')).count()).toEqual(0);
     // the 'group' block should disappear
@@ -182,7 +171,6 @@ describe('Topology node groups', function() {
     // close the node details box
     element(by.id('closeNodeTemplateDetails')).click();
 
-    console.log('## remove a member from the node');
     // click on the node 'Compute'
     element(by.id('rect_Compute')).click();
     // ensure the groups details is expanded
@@ -200,7 +188,6 @@ describe('Topology node groups', function() {
       element(by.id('closeNodeTemplateDetails')).click();
     });
 
-    console.log('## ensure the group has no more members');
     // show the groups box
     expect(element(by.id('topology-groups')).isDisplayed()).toBeTruthy();
     element(by.id('topology-groups')).element(by.xpath('..')).click();

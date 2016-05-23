@@ -54,7 +54,7 @@ define(function (require) {
       $scope.onSearchCompleted = function(searchResult) {
         $scope.data = searchResult.data;
       };
-      $scope.searchService = searchServiceFactory('rest/plugins', true, $scope, 20);
+      $scope.searchService = searchServiceFactory('rest/latest/plugins', true, $scope, 20);
 
       $scope.search = function() {
         $scope.searchService.search();
@@ -63,7 +63,7 @@ define(function (require) {
       //first load
       $scope.search();
 
-      var enableResource = $resource('rest/plugins/:pluginId/enable', {}, {
+      var enableResource = $resource('rest/latest/plugins/:pluginId/enable', {}, {
         'enable': {
           method: 'GET',
           params: {
@@ -72,7 +72,7 @@ define(function (require) {
         }
       });
 
-      var disableResource = $resource('rest/plugins/:pluginId/disable', {}, {
+      var disableResource = $resource('rest/latest/plugins/:pluginId/disable', {}, {
         'disable': {
           method: 'GET',
           params: {
@@ -118,12 +118,12 @@ define(function (require) {
       function handleError(result) {
         var resultHtml = builtResultList(result);
         // toaster message
-        toaster.pop('error', $translate('PLUGINS.ERRORS.' + result.error.code + '_TITLE'), resultHtml, 4000, 'trustedHtml', null);
+        toaster.pop('error', $translate.instant('PLUGINS.ERRORS.' + result.error.code + '_TITLE'), resultHtml, 4000, 'trustedHtml', null);
       }
 
       // Prepare result html for toaster message
       function builtResultList(resultObject) {
-        var baseResponse = $translate('PLUGINS.ERRORS.' + resultObject.error.code);
+        var baseResponse = $translate.instant('PLUGINS.ERRORS.' + resultObject.error.code);
         var resourtceList = baseResponse + ' : <ul>';
         resultObject.data.forEach(function getResource(resource) {
           resourtceList += '<li>';

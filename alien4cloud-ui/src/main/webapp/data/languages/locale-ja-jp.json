@@ -57,7 +57,9 @@
         "APP_NAME" : "アプリケーション名",
         "DEPLOYMENT_ID" : "デプロイID",
         "ORCHESTRATOR_ID" : "Orchestrator ID",
-        "ORCHESTRATOR_NAME" : "Orchestrator name"
+        "ORCHESTRATOR_NAME" : "Orchestrator name",
+        "LOCATION_ID" : "Location ID",
+        "LOCATION_NAME" : "Location name"
       },
       "INSTANCE" : "インスタンス",
       "INSTANCES" : "インスタンス",
@@ -100,6 +102,7 @@
         "ADD" : "入力の追加",
         "CONSTRAINT" : "制約"
       },
+      "INVALID_NODE_NAME" : "Invalid node name.",
       "LOCATION_UNAUTHORIZED_MESSAGE" : "You do not have the rights to deploy on the previously selected location: <{{locationName}}>, orchestrator: <{{orchestratorName}}>. \n Contact your admin for more explanations.",
       "NODE_INFO" : "選択ノード",
       "NO_OUTPUTS" : "プロパティ、属性の出力なし",
@@ -247,7 +250,10 @@
       "USEREMAIL" : "Email",
       "USERFIRSTNAME" : "First name",
       "USERLASTNAME" : "Last name",
-      "USERNAME" : "Username"
+      "USERNAME" : "Username",
+      "VERSION" : "API Version",
+      "USERAGENT" : "User-Agent",
+      "ALIEN4CLOUDUI": "Alien4Cloud UI"
     },
     "CONFIGURATION" : {
       "ACTION_NAME" : "Action's name",
@@ -307,6 +313,7 @@
     "ADD" : "追加",
     "ATTRIBUTES" : "属性",
     "CAPABILITIES" : "ケーパビリティ",
+    "DATA": "Data",
     "DESCRIPTION" : "説明",
     "EMAIL" : "Email",
     "ENABLED_false" : "無効化",
@@ -314,6 +321,8 @@
     "FILTER" : "フィルタ",
     "GROUPS" : "グループ",
     "ID" : "Id",
+    "INFO": "Information",
+    "INFOS": "Informations",
     "NAME" : "名前",
     "NO" : "No",
     "NODE" : "ノード",
@@ -373,6 +382,7 @@
       "FAILED_TO_READ_FILE" : "Unable to read the file {{note}}",
       "FILE_PATH" : "File path",
       "INVALID_ICON_FORMAT" : "Icon file is not a supported image format.",
+      "INVALID_NODE_TEMPLATE_NAME": "The node template [{{problem}}] as an invalid name, we rename this node to [{{note}}].",
       "INVALID_SCALAR_UNIT" : "Expected type was a TOSCA scalar unit, both unit and value are required.",
       "INVALID_YAML" : "The File does not respect YAML format.",
       "LABEL" : "Errors",
@@ -409,6 +419,7 @@
       "UNRECOGNIZED_PROPERTY" : "Property [ {{note}} ] is unknown and has been ignored.",
       "VALIDATION_ERROR" : "Declared type is not valid: {{context | translate:note}}",
       "WORKFLOW_HAS_ERRORS" : "Workflow [{{note}}] is not valid",
+      "POTENTIAL_BAD_PROPERTY_VALUE" : "There might be typographical errors: {{note}}.",
       "YAML_MAPPING_NODE_EXPECTED" : "A mapping node is expected.",
       "YAML_SCALAR_NODE_EXPECTED" : "A YAML node of type scalar is expected here.",
       "YAML_SEQUENCE_EXPECTED" : "A YAML sequence is expected."
@@ -547,6 +558,7 @@
     "615" : "The Git repository url doesn't exists or isn't a correct one.",
     "616" : "You are not authorized to clone this Git repository. Please check your credentials.",
     "617" : "No modification have been detected since the last import process",
+    "618" : "A name should only contains alphanumeric character from the basic Latin alphabet and the underscrore.",
     "650" : "At least two of your Compute have a conflict name.",
     "651" : "A BlockStorage can not have a VolumeID when the cloud has the 'deletable' option to set.",
     "800" : {
@@ -581,6 +593,7 @@
   "GENERIC_FORM" : {
     "ADD" : "追加",
     "CANCEL" : "キャンセル",
+    "CANCELLED" : "Cancelled",
     "DELETE" : "削除",
     "EDIT" : "編集",
     "FORM_INVALID_MESSAGE" : "注意!フォームは無効となり、すべての問題が解決されるまで保存されません:",
@@ -724,6 +737,15 @@
     },
     "UPLOAD" : "プラグインのアップロード"
   },
+  "POST_DEPLOYMENT" : {
+    "OPERATION": {
+      "DRAG_DROP_UPLOAD": "Drop operation to upload here",
+      "INFOS": "Complete informations to create new operation",
+      "NEW": "Create operation",
+      "TITLE": "Operation"
+    },
+    "SELECT_NODE" : "-- Select a node --"
+  },
   "PROPERTY_RESET" : "Set to default value or reset",
   "REQUIRED" : "Required",
   "ROLE_TABS" : {
@@ -835,5 +857,14 @@
     "refresh.button" : "Refresh",
     "title" : "Alien 4 Cloud's Metrics"
   },
-  "operations" : "Operations"
+  "operations" : "Operations",
+  "PATCH": {
+    "TITLE": "Patch",
+    "NO_PATCH_FOUND": "No patch found for deployment",
+    "ACK": "Executed",
+    "NACK": "Not executed",
+    "DRAG_DROP_UPLOAD": "Drop patch to upload here",
+    "NEW": "Create patch",
+    "INFOS": "Complete information to create new patch"
+  }
 }

@@ -1,5 +1,31 @@
 package alien4cloud.plugin;
 
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.collections4.MapUtils;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.mapping.MappingBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConstructorArgumentValues;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
+
 import alien4cloud.dao.IGenericSearchDAO;
 import alien4cloud.dao.model.GetMultipleDataResult;
 import alien4cloud.exception.AlreadyExistException;
@@ -11,37 +37,17 @@ import alien4cloud.utils.FileUtil;
 import alien4cloud.utils.MapUtil;
 import alien4cloud.utils.ReflectionUtil;
 import alien4cloud.utils.YamlParserUtil;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.MapUtils;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.mapping.MappingBuilder;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * Manages plugins.
  */
 @Slf4j
 @Component("plugin-manager")
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class PluginManager {
     private static final String UNKNOWN_PLUGIN_COMPONENT_TYPE = "Unknown component type";
     private static final String LIB_DIRECTORY = "lib";
@@ -65,7 +71,7 @@ public class PluginManager {
 
     public void unloadAllPlugins() {
         log.info("Unloading plugins");
-        GetMultipleDataResult<Plugin> results = alienDAO.find(Plugin.class, MapUtil.newHashMap(new String[]{"enabled"}, new String[][]{{"true"}}),
+        GetMultipleDataResult<Plugin> results = alienDAO.find(Plugin.class, MapUtil.newHashMap(new String[] { "enabled" }, new String[][] { { "true" } }),
                 Integer.MAX_VALUE);
         for (Plugin plugin : results.getData()) {
             unloadPlugin(plugin.getId(), false, false);
@@ -97,7 +103,7 @@ public class PluginManager {
 
         log.info("Initializing plugins");
         // Load enabled plugins in alien, query using max value as anyway we must be able to load all plugins in memory.
-        GetMultipleDataResult<Plugin> results = alienDAO.find(Plugin.class, MapUtil.newHashMap(new String[]{"enabled"}, new String[][]{{"true"}}),
+        GetMultipleDataResult<Plugin> results = alienDAO.find(Plugin.class, MapUtil.newHashMap(new String[] { "enabled" }, new String[][] { { "true" } }),
                 Integer.MAX_VALUE);
         loadPlugins(results.getData());
         log.info("{} Plugins initialized.", results.getData().length);
@@ -161,9 +167,9 @@ public class PluginManager {
      *
      * @param uploadedPluginPath The path of the plugin to upload.
      * @return the uploaded plugin
-     * @throws IOException                           In case there is an issue with the access to the plugin file.
+     * @throws IOException In case there is an issue with the access to the plugin file.
      * @throws PluginLoadingException
-     * @throws AlreadyExistException                 if a plugin with the same id already exists in the repository
+     * @throws AlreadyExistException if a plugin with the same id already exists in the repository
      * @throws MissingPlugingDescriptorFileException
      */
     public Plugin uploadPlugin(Path uploadedPluginPath) throws PluginLoadingException, IOException, MissingPlugingDescriptorFileException {
@@ -222,6 +228,7 @@ public class PluginManager {
                 callback.onPluginClosed(managedPlugin);
             }
 
+            managedPlugin.getPluginContext().stop();
             // destroy the plugin context
             managedPlugin.getPluginContext().destroy();
             pluginPath = managedPlugin.getPluginPath();
@@ -260,7 +267,7 @@ public class PluginManager {
      * Disable a plugin.
      *
      * @param pluginId The id of the plugin to disable.
-     * @param remove   If true the plugin is not only disabled but also removed from the plugin repository.
+     * @param remove If true the plugin is not only disabled but also removed from the plugin repository.
      * @return Empty list if the plugin was successfully disabled (and removed), or a list of usages that prevent the plugin to be disabled/removed.
      */
     public List<PluginUsage> disablePlugin(String pluginId, boolean remove) {
@@ -348,10 +355,10 @@ public class PluginManager {
     /**
      * Actually load and link a plugin in Alien 4 Cloud.
      *
-     * @param plugin       The plugin the load and link.
-     * @param pluginPath   The path to the directory that contains the un-zipped plugin.
+     * @param plugin The plugin the load and link.
+     * @param pluginPath The path to the directory that contains the un-zipped plugin.
      * @param pluginUiPath The path in which the ui files are located.
-     * @throws IOException            In case there is an IO issue with the file.
+     * @throws IOException In case there is an IO issue with the file.
      * @throws ClassNotFoundException If we cannot load the class
      */
     private void loadPlugin(Plugin plugin, Path pluginPath, Path pluginUiPath) throws IOException, ClassNotFoundException {
@@ -370,8 +377,8 @@ public class PluginManager {
                 }
             });
         }
-        ClassLoader pluginClassLoader = new PluginClassloader(classPathUrls.toArray(new URL[classPathUrls.size()]), Thread.currentThread()
-                .getContextClassLoader());
+        ClassLoader pluginClassLoader = new PluginClassloader(classPathUrls.toArray(new URL[classPathUrls.size()]),
+                Thread.currentThread().getContextClassLoader());
 
         // load a spring context for the plugin that will be a child of the current spring context
         AnnotationConfigApplicationContext pluginContext = new AnnotationConfigApplicationContext();
@@ -385,12 +392,22 @@ public class PluginManager {
             pluginContext.register(pluginClassLoader.loadClass(plugin.getDescriptor().getConfigurationClass()));
         }
 
-        ManagedPlugin managedPlugin = new ManagedPlugin(pluginContext, plugin, pluginPath, pluginUiPath);
-
         // Register the context so that it can be injected by other beans
-        pluginContext.getBeanFactory().registerSingleton("alien-plugin-context", managedPlugin);
+        // pluginContext.getBeanFactory().registerSingleton("alien-plugin-context", managedPlugin);
+        GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
+        beanDefinition.setPrimary(true);
+        beanDefinition.setBeanClass(ManagedPlugin.class);
+        ConstructorArgumentValues constructorArgumentValues = new ConstructorArgumentValues();
+        constructorArgumentValues.addIndexedArgumentValue(0, pluginContext);
+        constructorArgumentValues.addIndexedArgumentValue(1, plugin);
+        constructorArgumentValues.addIndexedArgumentValue(2, pluginPath);
+        constructorArgumentValues.addIndexedArgumentValue(3, pluginUiPath);
+        beanDefinition.setConstructorArgumentValues(constructorArgumentValues);
+        pluginContext.registerBeanDefinition("alien-plugin-context", beanDefinition);
 
         pluginContext.refresh();
+        pluginContext.start();
+        ManagedPlugin managedPlugin = (ManagedPlugin) pluginContext.getBean("alien-plugin-context");
 
         Map<String, PluginComponentDescriptor> componentDescriptors = getPluginComponentDescriptorAsMap(plugin);
 
@@ -419,7 +436,7 @@ public class PluginManager {
     /**
      * Initialize the list of exposed beans for the given plugin.
      *
-     * @param managedPlugin        The plugin for which to configure exposed beans.
+     * @param managedPlugin The plugin for which to configure exposed beans.
      * @param componentDescriptors The components descriptor of the plugin.
      */
     private void expose(ManagedPlugin managedPlugin, Map<String, PluginComponentDescriptor> componentDescriptors) {
@@ -440,8 +457,8 @@ public class PluginManager {
     /**
      * Link the plugin against alien components that may need to use it.
      *
-     * @param plugin               The plugin to link.
-     * @param managedPlugin        The managed plugin related to the plugin.
+     * @param plugin The plugin to link.
+     * @param managedPlugin The managed plugin related to the plugin.
      * @param componentDescriptors The map of component descriptors.
      */
     private void link(Plugin plugin, ManagedPlugin managedPlugin, Map<String, PluginComponentDescriptor> componentDescriptors) {

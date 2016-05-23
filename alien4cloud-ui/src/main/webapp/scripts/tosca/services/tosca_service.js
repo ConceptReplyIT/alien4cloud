@@ -31,7 +31,6 @@ define(function (require) {
 
       return {
         standardInterfaceName: 'tosca.interfaces.node.lifecycle.Standard',
-        cloudify2extensionInterfaceName: 'fastconnect.cloudify.extensions',
 
         getScalingPolicy: function(node) {
           if (_.defined(node.capabilitiesMap) && _.defined(node.capabilitiesMap.scalable)) {
@@ -175,7 +174,7 @@ define(function (require) {
           if(_.defined(nodeTemplates)) {
             while (nodeTemplates.hasOwnProperty(tempName)) {
               i++;
-              tempName = baseName + '-' + i;
+              tempName = baseName + '_' + i;
             }
           }
           return tempName;

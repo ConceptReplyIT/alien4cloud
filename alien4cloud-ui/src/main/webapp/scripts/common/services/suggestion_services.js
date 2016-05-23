@@ -4,30 +4,13 @@ define(function (require) {
   var modules = require('modules');
 
   modules.get('a4c-common').factory('suggestionServices', ['$resource', function($resource) {
-    var tagSuggestionResource = $resource('rest/suggest/tag/:path/:searchText', {}, {
+    var tagSuggestionResource = $resource('rest/latest/suggest/tag/:path/:searchText', {}, {
       'get' : {
         method : 'GET'
       }
     });
 
-    var genericSuggestionDAO = $resource('rest/suggestions/:index/:type/:path', {
-      index : '@index',
-      type : '@type',
-      path : '@path'
-    });
-
-    var nodetypeSuggestionResource = $resource('rest/suggest/nodetypes');
-
-    var getSuggestions = function(index, type, path, text) {
-      return genericSuggestionDAO.get({
-        index : index,
-        type : type,
-        path : path,
-        text : text
-      }).$promise.then(function(result) {
-        return result.data;
-      });
-    };
+    var nodetypeSuggestionResource = $resource('rest/latest/suggest/nodetypes');
 
     var getTagNameSuggestions = function(keyword) {
       return tagSuggestionResource.get({
@@ -50,7 +33,6 @@ define(function (require) {
 
     return {
       tagNameSuggestions : getTagNameSuggestions,
-      getSuggestions : getSuggestions,
       nodetypeSuggestions : getNodetypeSuggestions
     };
 

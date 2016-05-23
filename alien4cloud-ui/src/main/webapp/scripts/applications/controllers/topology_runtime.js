@@ -5,61 +5,84 @@ define(function (require) {
   var states = require('states');
   var _ = require('lodash');
   var angular = require('angular');
-
   require('d3');
-  require('scripts/topology/controllers/topology_editor_workflows');
-  require('scripts/topology/directives/plan_rendering');
 
-  states.state('applications.detail.runtime', {
-    url: '/runtime',
-    templateUrl: 'views/applications/topology_runtime.html',
+  require('scripts/common/services/resize_services');
+
+  require('scripts/topology/controllers/topology_editor_display');
+  require('scripts/topology/controllers/topology_editor_workflows');
+  require('scripts/topology/directives/workflow_rendering');
+
+  states.state('applications.detail.runtime.topology', {
+    url: '/runtime/topology',
+    templateUrl: 'views/topology/topology_runtime.html',
     controller: 'TopologyRuntimeCtrl',
     menu: {
-      id: 'am.applications.detail.runtime',
-      state: 'applications.detail.runtime',
+      id: 'am.applications.detail.runtime.topology',
+      state: 'applications.detail.runtime.topology',
       key: 'NAVAPPLICATIONS.MENU_RUNTIME',
       icon: 'fa fa-cogs',
       roles: ['APPLICATION_MANAGER', 'APPLICATION_DEPLOYER'], // is deployer
       priority: 400
-    },
-    params:{
-      selectedEnvironmentId:null
     }
   });
+  states.forward('applications.detail.runtime', 'applications.detail.runtime.topology');
 
   modules.get('a4c-applications').controller('TopologyRuntimeCtrl',
-    ['$scope', 'applicationServices', '$translate', 'resizeServices', 'deploymentServices', 'applicationEventServicesFactory', '$state', 'propertiesServices', 'toaster', 'orchestratorService', 'appEnvironments', '$interval', 'toscaService', 'topologyJsonProcessor', 'topoEditWf',
-    function($scope, applicationServices, $translate, resizeServices, deploymentServices, applicationEventServicesFactory, $state, propertiesServices, toaster, orchestratorService, appEnvironments, $interval, toscaService, topologyJsonProcessor, topoEditWf) {
+    ['$scope',
+    'applicationServices',
+    '$translate',
+    'deploymentServices',
+    'applicationEventServicesFactory',
+    '$state',
+    'propertiesServices',
+    'toaster',
+    'orchestratorService',
+    'locationService',
+    'appEnvironments',
+    '$interval',
+    'toscaService',
+    'topologyJsonProcessor',
+    'topoEditWf',
+    'topoEditDisplay',
+    function($scope,
+      applicationServices,
+      $translate,
+      deploymentServices,
+      applicationEventServicesFactory,
+      $state,
+      propertiesServices,
+      toaster,
+      orchestratorService,
+      locationService,
+      appEnvironments,
+      $interval,
+      toscaService,
+      topologyJsonProcessor,
+      topoEditWf,
+      topoEditDisplay) {
+      $scope.isRuntime = true;
 
       topoEditWf($scope);
+      topoEditDisplay($scope);
 
       var pageStateId = $state.current.name;
       var applicationId = $state.params.id;
-      var selectedEnvironmentId = $state.params.selectedEnvironmentId;
       $scope.selectedEnvironment = null;
       $scope.triggerTopologyRefresh = null;
-
-      console.log($state);
 
       var updateSelectedEnvionment = function() {
         $scope.runtimeEnvironments = appEnvironments.deployEnvironments;
         // select current environment
-        if (_.defined(appEnvironments.selectedEnvironment) && appEnvironments.selectedEnvironment.status !== 'UNDEPLOYED') {
-          $scope.selectedEnvironment = appEnvironments.selectedEnvironment;
-        } else if(_.defined(selectedEnvironmentId)){
-          //or maybe the state request was made to open the view on a specific environment
-          var environmentsById = _.indexBy(appEnvironments.deployEnvironments, 'id');
-          if(_.defined( environmentsById[selectedEnvironmentId]) &&  environmentsById[selectedEnvironmentId].status!=='UNDEPLOYED'){
-            $scope.selectedEnvironment = environmentsById[selectedEnvironmentId];
-            appEnvironments.selectedEnvironment = $scope.selectedEnvironment;
-          }
-        }else {
+        if (_.defined(appEnvironments.selected) && appEnvironments.selected.status !== 'UNDEPLOYED') {
+          $scope.selectedEnvironment = appEnvironments.selected;
+        } else {
           //otherwise, just select the first deployed envionment
           for (var i = 0; i < appEnvironments.deployEnvironments.length && _.undefined($scope.selectedEnvironment); i++) {
             if (appEnvironments.deployEnvironments[i].status !== 'UNDEPLOYED') {
               $scope.selectedEnvironment = appEnvironments.deployEnvironments[i];
             }
-            appEnvironments.selectedEnvironment = $scope.selectedEnvironment;
+            appEnvironments.select($scope.selectedEnvironment);
           }
         }
       };
@@ -67,9 +90,14 @@ define(function (require) {
       //update the selectedEnvironment
       updateSelectedEnvionment();
 
-
       // get the related cloud to display informations.
       var refreshOrchestratorInfo = function() {
+        locationService.get({
+          orchestratorId: $scope.topology.topology.orchestratorId,
+          locationId: $scope.topology.topology.locationGroups._A4C_ALL.policies[0].locationId
+        }, function(response) {
+          $scope.location = response.data.location;
+        });
         orchestratorService.get({
           orchestratorId: $scope.topology.topology.orchestratorId
         }, function(response) {
@@ -101,31 +129,6 @@ define(function (require) {
       $scope.filterEvents = function(filter) {
         $scope.selectedEventTypeFilter = filter;
       };
-
-      // Layout resize
-      var borderSpacing = 10;
-      var border = 2;
-      var detailDivWidth = 450;
-      var widthOffset = detailDivWidth + (3 * borderSpacing) + (2 * border);
-
-      function onResize(width, height) {
-        $scope.dimensions = {
-          width: width,
-          height: height
-        };
-        $scope.visualDimensions = $scope.dimensions;
-        $scope.eventsDivHeight = resizeServices.getHeight(236);
-      }
-
-      resizeServices.register(onResize, widthOffset, 124);
-
-      $scope.dimensions = {
-        height: resizeServices.getHeight(124),
-        width: resizeServices.getWidth(widthOffset)
-      };
-      $scope.visualDimensions = $scope.dimensions;
-      $scope.eventsDivHeight = resizeServices.getHeight(236);
-      // End Layout resize
 
       var applicationEventServices = null;
 
@@ -298,7 +301,7 @@ define(function (require) {
       var injectPropertyDefinitionToInterfaces = function(interfaces) {
 
         if (_.defined(interfaces)) {
-          angular.forEach(interfaces, function(interfaceObj, interfaceName) {
+          angular.forEach(interfaces, function(interfaceObj) {
             Object.keys(interfaceObj.operations).forEach(function(operation) {
               if (_.defined(interfaceObj.operations[operation].inputParameters)) {
                 Object.keys(interfaceObj.operations[operation].inputParameters).forEach(function(paramName) {
@@ -348,9 +351,9 @@ define(function (require) {
             var constraintInfo = successResult.data;
             var errorMessage = null;
             if (successResult.error.code === 804) {
-              errorMessage = $translate('ERRORS.' + successResult.error.code, constraintInfo);
+              errorMessage = $translate.instant('ERRORS.' + successResult.error.code, constraintInfo);
             } else { // 800
-              errorMessage = $translate('ERRORS.' + successResult.error.code + '.' + constraintInfo.name, constraintInfo);
+              errorMessage = $translate.instant('ERRORS.' + successResult.error.code + '.' + constraintInfo.name, constraintInfo);
             }
           } else {
             // No errors
@@ -383,7 +386,12 @@ define(function (require) {
         if (nodetype.interfaces) {
           $scope.selectedNodeCustomInterfaces = {};
           angular.forEach(nodetype.interfaces, function(interfaceObj, interfaceName) {
-            if (interfaceName !== toscaService.standardInterfaceName && interfaceName !== toscaService.cloudify2extensionInterfaceName) {
+            if (interfaceName !== toscaService.standardInterfaceName) {
+              $scope.selectedNodeCustomInterfaces[interfaceName] = interfaceObj;
+            }
+          });
+          angular.forEach($scope.selectedNodeTemplate.interfaces, function(interfaceObj, interfaceName) {
+            if (interfaceName !== toscaService.standardInterfaceName) {
               $scope.selectedNodeCustomInterfaces[interfaceName] = interfaceObj;
             }
           });
@@ -396,8 +404,8 @@ define(function (require) {
         }
         refreshSelectedNodeInstancesCount();
         $scope.clearInstanceSelection();
+        $scope.display.set('details', true);
         $scope.$apply();
-        document.getElementById('details-tab').click();
       };
 
       $scope.selectInstance = function(id) {
@@ -481,7 +489,7 @@ define(function (require) {
           // success
           $scope.operationLoading[$scope.selectedNodeTemplate.name][interfaceName][operationName] = false;
           if (successResult.error !== null) {
-            var title = $translate('ERRORS.' + successResult.error.code + '.TITLE', {
+            var title = $translate.instant('ERRORS.' + successResult.error.code + '.TITLE', {
               'operation': operationName
             });
             var message = null;
@@ -491,10 +499,10 @@ define(function (require) {
             // 805 : required constraint for a property definition
             // 371 : Operation exception
             if (successResult.error.code === 804 || successResult.error.code === 805) { // Type matching error
-              message = $translate('ERRORS.' + successResult.error.code + '.MESSAGE', successResult.data);
+              message = $translate.instant('ERRORS.' + successResult.error.code + '.MESSAGE', successResult.data);
             } else if (successResult.error.code === 800) { // Constraint error
               var constraintInfo = successResult.data;
-              message = $translate('ERRORS.' + successResult.error.code + '.' + constraintInfo.name, constraintInfo);
+              message = $translate.instant('ERRORS.' + successResult.error.code + '.' + constraintInfo.name, constraintInfo);
             } else { // code 371, execution error
               message = successResult.error.message;
             }
@@ -502,8 +510,7 @@ define(function (require) {
             toaster.pop('error', title, message, 0, 'trustedHtml', null);
 
           } else if (!_.undefined(successResult.data)) {
-
-            title = $translate('APPLICATIONS.RUNTIME.OPERATION_EXECUTION.RESULT_TITLE', {
+            var successTitle = $translate.instant('APPLICATIONS.RUNTIME.OPERATION_EXECUTION.RESULT_TITLE', {
               'operation': operationName
             });
             // Toaster HTML result preview for all instances
@@ -514,13 +521,13 @@ define(function (require) {
               if (resultInstanceMap[instanceId]) {
                 resultHtml.push('<li>Instance ' + instanceId + ' : ' + resultInstanceMap[instanceId] + '</li>');
               } else {
-                resultHtml.push('<li>Instance ' + instanceId + ' : OK (' + $translate('APPLICATIONS.RUNTIME.OPERATION_EXECUTION.NO_RETURN') + ')</li>');
+                resultHtml.push('<li>Instance ' + instanceId + ' : OK (' + $translate.instant('APPLICATIONS.RUNTIME.OPERATION_EXECUTION.NO_RETURN') + ')</li>');
               }
 
             });
             resultHtml.push('</ul>');
             // timeout at 0 == keep displayed until close
-            toaster.pop('success', title, resultHtml.join(''), 0, 'trustedHtml', null);
+            toaster.pop('success', successTitle, resultHtml.join(''), 0, 'trustedHtml', null);
           }
 
         }, function(errorResult) {
@@ -574,9 +581,13 @@ define(function (require) {
         }
       };
 
-      $scope.changeEnvironment = function(){
-        $scope.loadTopologyRuntime();
-        $scope.clearNodeSelection();
+      $scope.changeEnvironment = function(selectedEnvironment) {
+        appEnvironments.select(selectedEnvironment.id, function() {
+          $scope.selectedEnvironment = appEnvironments.selected;
+          // update the environment
+          $scope.loadTopologyRuntime();
+          $scope.clearNodeSelection();
+        });
       };
 
       // first topology load

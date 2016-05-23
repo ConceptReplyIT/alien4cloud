@@ -1,7 +1,13 @@
 package alien4cloud.rest.orchestrator;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.Authorization;
+
 import java.util.List;
 
+import javax.annotation.Resource;
 import javax.inject.Inject;
 import javax.validation.Valid;
 
@@ -18,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import alien4cloud.audit.annotation.Audit;
 import alien4cloud.model.orchestrators.locations.Location;
-import alien4cloud.orchestrators.locations.services.LocationResourceService;
+import alien4cloud.orchestrators.locations.services.ILocationResourceService;
 import alien4cloud.orchestrators.locations.services.LocationService;
 import alien4cloud.rest.model.RestResponse;
 import alien4cloud.rest.model.RestResponseBuilder;
@@ -30,22 +36,18 @@ import alien4cloud.security.model.DeployerRole;
 import alien4cloud.utils.ReflectionUtil;
 
 import com.google.common.collect.Lists;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Authorization;
 
 /**
  * Controller that manages locations for orchestrators.
  */
 @RestController
-@RequestMapping(value = "/rest/orchestrators/{orchestratorId}/locations", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = {"/rest/orchestrators/{orchestratorId}/locations", "/rest/v1/orchestrators/{orchestratorId}/locations", "/rest/latest/orchestrators/{orchestratorId}/locations", "/rest/latest/orchestrators/{orchestratorId}/locations", "/rest/latest/orchestrators/{orchestratorId}/locations"}, produces = MediaType.APPLICATION_JSON_VALUE)
 @Api(value = "Orchestrators Locations", description = "Manages locations for a given orchestrator.", authorizations = { @Authorization("ADMIN") }, position = 4400)
 public class LocationController {
     @Inject
     private LocationService locationService;
-    @Inject
-    private LocationResourceService locationResourceService;
+    @Resource(name = "location-resource-service")
+    private ILocationResourceService locationResourceService;
 
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Create a new location.", authorizations = { @Authorization("ADMIN") })
@@ -64,7 +66,7 @@ public class LocationController {
     @Audit
     public RestResponse<Boolean> delete(@ApiParam(value = "Id of the orchestrator for which the location is defined.") @PathVariable String orchestratorId,
             @ApiParam(value = "Id of the location to delete.", required = true) @PathVariable String id) {
-        return RestResponseBuilder.<Boolean> builder().data(locationService.delete(id)).build();
+        return RestResponseBuilder.<Boolean> builder().data(locationService.delete(orchestratorId, id)).build();
     }
 
     @ApiOperation(value = "Get all locations for a given orchestrator.")

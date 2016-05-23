@@ -1,14 +1,11 @@
 package alien4cloud.it.setup;
 
+import com.google.common.collect.Maps;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
-
-import com.google.common.collect.Maps;
-
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class TestDataRegistry {
@@ -85,6 +82,17 @@ public class TestDataRegistry {
         addConditionFolder("valid-csar-with-update2", "src/test/resources/data/csars/snapshot-test/snapshot-test-update2");
         addConditionFolder("valid-csar-with-update3", "src/test/resources/data/csars/snapshot-test/snapshot-test-update3");
         addConditionFolder("csar-test-no-topology", "src/test/resources/data/csars/snapshot-test/missing-topology-yaml");
+        addConditionFolder("topology with wrong os distribution value", "src/test/resources/data/csars/suggestion-test/ubuntu-wrong-capabilities-property");
+        addConditionFolder("topology with similar os distribution value", "src/test/resources/data/csars/suggestion-test/ubuntu-info-capabilities-property");
+        addConditionFolder("topology with wrong device value", "src/test/resources/data/csars/suggestion-test/blockstorage-wrong-property");
+        addConditionFolder("topology with similar device value", "src/test/resources/data/csars/suggestion-test/blockstorage-info-property");
+        addConditionFolder("containing relationship types for suggestion tests", "src/test/resources/data/csars/suggestion-test/relationship-type");
+        addConditionFolder("topology with similar relationship property value", "src/test/resources/data/csars/suggestion-test/relationship-info-property");
+        addConditionFolder("topology with wrong relationship property value", "src/test/resources/data/csars/suggestion-test/relationship-wrong-property");
+        addConditionFolder("node type with similar node filter constraint value", "src/test/resources/data/csars/suggestion-test/node-type-info-node-filter");
+        addConditionFolder("node type with wrong node filter constraint value", "src/test/resources/data/csars/suggestion-test/node-type-wrong-node-filter");
+        addConditionFolder("node type with new suggestion for equal constraint of node filter", "src/test/resources/data/csars/suggestion-test/node-type-new-suggestion-eq");
+        addConditionFolder("node type with new suggestion for valid values constraint of node filter", "src/test/resources/data/csars/suggestion-test/node-type-new-suggestion-vv");
 
         // Topology parsing data
         addConditionFolder("topology-singlecompute", "src/test/resources/data/csars/topology_template/topology-singlecompute");
@@ -110,14 +118,19 @@ public class TestDataRegistry {
         addConditionFolder("topology-groups", "src/test/resources/data/csars/topology_template/topology-groups");
         addConditionFolder("topology-groups-unknown-policy", "src/test/resources/data/csars/topology_template/topology-groups-unknown-policy");
         addConditionFolder("topology-groups-unknown-member", "src/test/resources/data/csars/topology_template/topology-groups-unknown-member");
+        addConditionFolder("topology-invalid-node-name", "src/test/resources/data/csars/topology_template/topology-invalid-node-name");
+
 
         // Runtime archive
         addConditionFolder("custom-interface-mock-types", "src/test/resources/data/csars/custom-interface-mock-types");
 
         addConditionFolder("tosca-normative-types", GIT_ARTIFACTS_PATH + "tosca-normative-types");
         addConditionFolder("tosca-normative-types-wd06", GIT_ARTIFACTS_PATH + "tosca-normative-types-wd06");
-        addConditionFolder("alien-base-types", GIT_ARTIFACTS_PATH + "alien4cloud-extended-types/alien-base-types-1.0-SNAPSHOT");
-        addConditionFolder("alien-extended-storage-types", GIT_ARTIFACTS_PATH + "alien4cloud-extended-types/alien-extended-storage-types-1.0-SNAPSHOT");
+        addConditionFolder("tosca-normative-types-1.0.0-SNAPSHOT", GIT_ARTIFACTS_PATH + "tosca-normative-types-1.0.0-SNAPSHOT");
+
+        addConditionFolder("alien-base-types 1.1.0", GIT_ARTIFACTS_PATH + "alien4cloud-extended-types-V2/alien-base-types");
+        addConditionFolder("alien-extended-storage-types 1.2.0", GIT_ARTIFACTS_PATH + "alien4cloud-extended-types-V2/alien-extended-storage-types");
+
         addConditionFolder("samples tomcat-war", GIT_ARTIFACTS_PATH + "samples/tomcat-war");
         addConditionFolder("samples apache", GIT_ARTIFACTS_PATH + "samples/apache");
         addConditionFolder("samples wordpress", GIT_ARTIFACTS_PATH + "samples/wordpress");

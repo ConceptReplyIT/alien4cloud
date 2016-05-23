@@ -17,15 +17,6 @@ define(function (require) {
     url: '/infos',
     templateUrl: 'views/applications/application_infos.html',
     controller: 'ApplicationInfosCtrl',
-    resolve: {
-      defaultEnvironmentTab: ['appEnvironments', function(appEnvironments) {
-        // return the first deployed env found or null
-        var onlyDeployed = appEnvironments.environments.filter(function deployed(element) {
-          return element.status === 'DEPLOYED';
-        });
-        return onlyDeployed.length > 0 ? onlyDeployed[0] : null;
-      }]
-    },
     menu: {
       id: 'am.applications.info',
       state: 'applications.detail.info',
@@ -43,7 +34,6 @@ define(function (require) {
       /* Tag name with all letters a-Z and - and _ and no space */
       $scope.tagKeyPattern = /^[\-\w\d_]*$/;
       $scope.application = applicationResult.data;
-      $scope.applicationId = $scope.application.id;
       var pageStateId = $state.current.name;
 
       $scope.isManager = authService.hasResourceRole($scope.application, 'APPLICATION_MANAGER');
@@ -53,45 +43,34 @@ define(function (require) {
       $scope.newAppName = $scope.application.name;
 
       $scope.isAllowedModify = _.defined($scope.application.topologyId) && ($scope.isManager || $scope.isDevops);
-      $scope.envs = appEnvironments.environments;
+      $scope.appEnvironments = appEnvironments;
 
-      $scope.selectedTab = null;
-      $scope.selectTab = function selectTab(applicationId, environmentId) {
-        $scope.selectedTab = {
-          appId: applicationId,
-          envId: environmentId
-        };
-
-      };
-
-      // when scope change, stop current event listener
-      $scope.$on('$destroy', function() {
-        $scope.stopEvent();
-      });
-
-      // whatching $scope.selectTab changes
-      $scope.$watch('selectedTab', function(newValue, oldValue) {
-        if (newValue !== oldValue) {
-          $scope.stopEvent();
-          $scope.setTopologyId(newValue.appId, newValue.envId, null).$promise.then(function(result) {
+      $scope.setEnvironment = function setEnvironment(environmentId) {
+        // select an environment and register a callback in case the env has changed.
+        appEnvironments.select(environmentId, function() {
+          $scope.stopEvent(); // stop to listen for instance events
+          $scope.setTopologyId($scope.application.id, appEnvironments.selected.id, null).$promise.then(function(result) {
             // get informations from this topology
             $scope.processTopologyInformations(result.data).$promise.then(function() {
-              $scope.refreshInstancesStatuses(newValue.appId, newValue.envId, pageStateId);
+              $scope.refreshInstancesStatuses($scope.application.id, appEnvironments.selected.id, pageStateId);
             });
           });
-        }
+        }, true);
+      };
+
+      $scope.$on('$destroy', function() { // routing to another page
+        $scope.stopEvent(); // stop to listen for instance events
       });
 
-      // Upload handler
+      // Image upload
       $scope.doUpload = function(file) {
         $upload.upload({
-          url: 'rest/applications/' + $scope.applicationId + '/image',
+          url: 'rest/latest/applications/' + $scope.application.id + '/image',
           file: file
         }).success(function(result) {
           $scope.application.imageId = result.data;
         });
       };
-
       $scope.onImageSelected = function($files) {
         var file = $files[0];
         $scope.doUpload(file);
@@ -183,7 +162,7 @@ define(function (require) {
             $state.go('applications.list');
           } else {
             // toaster message
-            toaster.pop('error', $translate('APPLICATIONS.ERRORS.DELETE_TITLE'), $translate('APPLICATIONS.ERRORS.DELETING_FAILED'), 4000, 'trustedHtml', null);
+            toaster.pop('error', $translate.instant('APPLICATIONS.ERRORS.DELETE_TITLE'), $translate.instant('APPLICATIONS.ERRORS.DELETING_FAILED'), 4000, 'trustedHtml', null);
           }
         });
       };
@@ -202,7 +181,7 @@ define(function (require) {
             $state.go($state.current, {}, {reload: true});
           },
           function(errorResponse) {// Error
-            return $translate('ERRORS.' + errorResponse.data.error.code);
+            return $translate.instant('ERRORS.' + errorResponse.data.error.code);
           }
         );
       };

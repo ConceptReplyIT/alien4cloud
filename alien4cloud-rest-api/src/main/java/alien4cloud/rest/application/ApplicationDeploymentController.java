@@ -1,5 +1,10 @@
 package alien4cloud.rest.application;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.Authorization;
+
 import java.util.List;
 import java.util.Map;
 
@@ -57,14 +62,10 @@ import alien4cloud.security.model.DeployerRole;
 import alien4cloud.topology.TopologyValidationResult;
 
 import com.google.common.collect.Maps;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Authorization;
 
 @Slf4j
 @RestController
-@RequestMapping("/rest/applications")
+@RequestMapping({"/rest/applications", "/rest/v1/applications", "/rest/latest/applications"})
 @Api(value = "", description = "Manage opertions on deployed application.")
 public class ApplicationDeploymentController {
     @Resource

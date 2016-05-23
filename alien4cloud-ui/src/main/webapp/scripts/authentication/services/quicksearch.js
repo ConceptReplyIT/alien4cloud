@@ -9,7 +9,7 @@ define(function (require) {
 
   modules.get('a4c-auth', ['a4c-search']).factory('quickSearchServices', ['$state','$resource',
     function($state, $resource ) {
-      var quickSearchResource = $resource('rest/quicksearch', {}, {
+      var quickSearchResource = $resource('rest/latest/quicksearch', {}, {
         'search': {
           method : 'POST',
           isArray : false,
@@ -21,7 +21,7 @@ define(function (require) {
 
       var openItem = {};
       openItem.indexednodetype = function(componentId){
-        $state.go('components.component.detail', { id: componentId });
+        $state.go('components.detail', { id: componentId });
       };
       openItem.application = function(applicationId){
         $state.go('applications.detail.info', { id: applicationId });
