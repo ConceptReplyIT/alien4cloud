@@ -10,6 +10,7 @@ import java.util.Set;
 
 import javax.annotation.Resource;
 
+import org.springframework.context.annotation.Primary;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
@@ -37,13 +38,14 @@ import lombok.SneakyThrows;
 @Getter
 @Setter
 @Component
+@Primary
 public class LocalRepositoryImpl implements ICSARRepositorySearchService {
     private static ThreadLocal<Boolean> recursiveCall = new ThreadLocal<>();
     @Resource
     private ToscaArchiveParser toscaArchiveParser;
 
     /** Path of the local repository. */
-    private Path localRepositoryPath = Paths.get("target/repository");
+    private Path localRepositoryPath = Paths.get("C:\\Users\\a.brigandi\\git\\orchestrator\\tools\\target\\repository");
 
     public void setPath(String path) {
         localRepositoryPath = Paths.get(path);
@@ -52,7 +54,7 @@ public class LocalRepositoryImpl implements ICSARRepositorySearchService {
     @Override
     public Csar getArchive(String archiveName, String archiveVersion) {
         CSARDependency dependency = new CSARDependency(archiveName, archiveVersion);
-        ArchiveRoot root = parse(dependency).getResult();
+        ArchiveRoot root = parseAndRegister(dependency).getResult();
         return root == null ? null : root.getArchive();
     }
     
@@ -99,27 +101,26 @@ public class LocalRepositoryImpl implements ICSARRepositorySearchService {
 
     @Override
     public <T extends AbstractToscaType> T getElementInDependencies(Class<T> elementClass, String elementId, Set<CSARDependency> dependencies) {
-        if (recursiveCall.get() == null) {
-            recursiveCall.set(true);
+        if (!Boolean.TRUE.equals(recursiveCall.get())) {
+            try {
+                recursiveCall.set(true);
+                T element = ToscaContext.get(elementClass, elementId);
+                return element;
+            } finally {
+                recursiveCall.remove();
+            }
         } else {
             return null;
         }
-        // ensure that dependencies are loaded in the ToscaContext
-        for (CSARDependency dependency : dependencies) {
-            // parse and register the archive from local repository.
-            parseAndRegister(dependency);
-        }
-        T element = ToscaContext.get(elementClass, elementId);
-        recursiveCall.remove();
-        return element;
     }
 
     @SneakyThrows
-    private void parseAndRegister(CSARDependency dependency) {
+    private ParsingResult<ArchiveRoot> parseAndRegister(CSARDependency dependency) {
         // parse and load archive.
         ParsingResult<ArchiveRoot> result = parse(dependency);
         ToscaContext.Context context = ToscaContext.get();
         context.register(result.getResult());
+        return result;
     }
     
     @SneakyThrows
@@ -131,7 +132,7 @@ public class LocalRepositoryImpl implements ICSARRepositorySearchService {
           .forEach(versionPath -> {
             try {
               ParsingContextExecution.init();
-              ParsingResult<ArchiveRoot> r = toscaArchiveParser.parse(archivePath);
+              ParsingResult<ArchiveRoot> r = toscaArchiveParser.parseWithExistingContext(archivePath);
               if (r != null) {
                 ArchiveRoot ar = r.getResult();
                 if (ar != null)
@@ -158,7 +159,7 @@ public class LocalRepositoryImpl implements ICSARRepositorySearchService {
         ParsingContextExecution.Context previousContext = ParsingContextExecution.get();
         try {
             ParsingContextExecution.init();
-            return toscaArchiveParser.parse(archivePath);
+            return toscaArchiveParser.parseWithExistingContext(archivePath);
         } finally {
             ParsingContextExecution.destroy();
             if (previousContext != null) {

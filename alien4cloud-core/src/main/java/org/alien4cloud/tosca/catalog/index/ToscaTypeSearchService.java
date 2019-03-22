@@ -16,7 +16,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -35,7 +34,6 @@ import static alien4cloud.dao.FilterUtil.singleKeyFilter;
 
 @Slf4j
 @Component
-@Primary
 public class ToscaTypeSearchService extends AbstractToscaIndexSearchService<AbstractToscaType> implements IToscaTypeSearchService {
 
     @Resource(name = "alien-es-dao")
